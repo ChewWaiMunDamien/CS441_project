@@ -21,6 +21,12 @@ import socket
 # Write function to demonstrate sniffing. Accept User input at Node 1 to sniff Node 2's communications
 # Firewall: On Node 3 implement a packet filter. User can add and remove rules to the filter, demonstrate by blocking packets from Node2 and accept all others
 
+#Implementation:
+    # Create a socket for each node and one for the router
+    # Sending would involve creating the MAC to socket table
+    # IP to MAC translation would be using a device's ARP table, if no entry then send to default Gateway the router interface in the LAN
+    # For the router, it would have a routing table to determine which interface to forward the packet to and a broadcast table to send to all devices at once
+
 # For Open Category, Design and Implement other security functions or attacks on the network then demo it
 
 def main():
