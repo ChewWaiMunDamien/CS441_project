@@ -1,4 +1,5 @@
-import socket
+import threading, sys
+from classes import Interface, Router, Node, arp_table, mac_port_table
 
 # Goal emulate a network with 1 router and 3 LANs
 # Router has 3 interfaces R1,R2,R3
@@ -29,5 +30,100 @@ import socket
 
 # For Open Category, Design and Implement other security functions or attacks on the network then demo it
 
-def main():
+# Unicast table for MAC to port
+# R1: 1000
+# R2: 1001
+# R3: 1002
+# N1: 1001
+# N2: 1002
+# N3: 1003
+# N4: 1004
+
+# Broadcast table for MAC to port
+# R1: 1001, 1002
+# R2: 1003
+# R3: 1004
+
+# ARP table for Router
+# 0x12: N1
+# 0x13: N2
+# 0x22: N3
+# 0x32: N4
+# 0x11: R1
+# 0x21: R2
+# 0x31: R3
+
+def setup():
+    # Create Router and nodes
     host = "127.0.0.1" # Loopback interface address (localhost)
+    router = setup_router(host)
+    nodes = setup_nodes(host)
+    # Start router listener in background thread
+    threading.Thread(target=router.listen, daemon=True).start()
+
+    # Start each node's listener in background thread
+    for node in nodes.values():
+        threading.Thread(target=node.listen, daemon=True).start()
+    
+    return nodes
+
+def setup_router(host):
+    R1 = Interface("R1", 0x11, "R1")
+    R2 = Interface("R2", 0x21, "R2")
+    R3 = Interface("R3", 0x31, "R3")
+
+    Router_Interfaces = [R1, R2, R3]
+
+    Router_broadcast_table = {"R1": [1001,1002], "R2": [1003], "R3": [1004]}
+
+    Router_ARP_table = arp_table.ARPTable()
+    Router_ARP_table.add(0x11, "R1")
+    Router_ARP_table.add(0x21, "R2")
+    Router_ARP_table.add(0x31, "R3")
+    Router_ARP_table.add(0x12, "N1")
+    Router_ARP_table.add(0x13, "N2")
+    Router_ARP_table.add(0x22, "N3")
+    Router_ARP_table.add(0x32, "N4")
+
+    Router_routing_table = {"0x1": R1, "0x2": R2, "0x3": R3}
+
+    return Router(Router_routing_table, Router_broadcast_table, Router_ARP_table, Router_Interfaces, 1000, host)
+
+def setup_nodes(host):
+    N1_ARP_table = arp_table.ARPTable()
+    N1_ARP_table.add(0x11, "R1")
+    N1_ARP_table.add(0x13, "N2")
+    N1_MAC_Port_table = mac_port_table.mac_port_table()
+    N1_MAC_Port_table.add("R1", 1000)
+    N1_MAC_Port_table.add("N2", 1002)
+
+    N1 = Node("N1", 0x12, "N1", N1_ARP_table, N1_MAC_Port_table, "R1", 1001, host)
+
+    N2_ARP_table = arp_table.ARPTable()
+    N2_ARP_table.add(0x11, "R1")
+    N2_ARP_table.add(0x12, "N1")
+    N2_MAC_Port_table = mac_port_table.mac_port_table()
+    N2_MAC_Port_table.add("R1", 1000)
+    N2_MAC_Port_table.add("N1", 1001)
+
+    N2 = Node("N2", 0x13, "N2", N2_ARP_table, N2_MAC_Port_table, "R1", 1002, host)
+
+    N3_ARP_table = arp_table.ARPTable()
+    N3_ARP_table.add(0x21, "R2")
+    N3_MAC_Port_table = mac_port_table.mac_port_table()
+    N3_MAC_Port_table.add("R2", 1000)
+    N3 = Node("N3", 0x22, "N3", N3_ARP_table, N3_MAC_Port_table, "R2", 1003, host)
+
+    N4_ARP_table = arp_table.ARPTable()
+    N4_ARP_table.add(0x31, "R3")
+    N4_MAC_Port_table = mac_port_table.mac_port_table()
+    N4_MAC_Port_table.add("R3", 1000)
+    N4 = Node("N4", 0x32, "N4", N4_ARP_table, N4_MAC_Port_table, "R3", 1004, host)
+    return {"N1":N1, "N2":N2, "N3":N3, "N4":N4}
+
+def main():
+    nodes = setup()
+    node_name = sys.argv[1] # e.g. python main.py N1
+    nodes[node_name].cli()
+
+
