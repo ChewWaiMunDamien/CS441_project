@@ -2,8 +2,8 @@ import json
 
 class IP_Packet:
     # Consts for protocols
-    PROTOCOL_PING = 1
-    PROTOCOL_PING_ECHO = 2
+    PROTOCOL_PING = "PING"
+    PROTOCOL_PING_ECHO = "PING_ECHO"
 
     def __init__(self, destination_IP, source_IP, protocol, payload):
         self.destination_IP = destination_IP
@@ -15,11 +15,11 @@ class IP_Packet:
     def __len__(self):
         return self.data_length
     
-    def __str__(self):
+    def __str__(self, receiver_name=""):
         return (
-            f"┌─ IP Packet Header───────────────────────────\n"
-            f"│  Src IP   : {hex(self.source_IP)}\n"
+            f"┌─ [{receiver_name}] IP Packet Header───────────────────────────\n"
             f"│  Dst IP   : {hex(self.destination_IP)}\n"
+            f"│  Src IP   : {hex(self.source_IP)}\n"
             f"│  Protocol : {self.protocol}\n"
             f"│  Length   : {self.data_length} bytes\n"
             f"└────────────────────────────────────────"

@@ -16,7 +16,6 @@ class Router:
 
     def route_to_interface(self, packet):
         prefix = Router.get_prefix(packet.destination_IP)
-        print(prefix)
         return self.routing_table.get(prefix) # Returns interface to send packets out of, or None if no route
     
     def targets_broadcast(self, interface):
@@ -50,9 +49,9 @@ class Router:
         while True:
             raw = self.sock.recv(4096)
             frame = E_Frame.deEncapsulate(raw)
-            print(f"\n{frame}")
+            print(f"\n{frame.__str__('Router')}")
             packet = frame.payload
-            print(f"\n{packet}")
+            print(f"\n{packet.__str__('Router')}")
             if (self.dest_is_router(packet)):
                 continue
             else:

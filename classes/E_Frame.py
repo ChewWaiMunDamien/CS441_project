@@ -14,13 +14,13 @@ class E_Frame:
     def __len__(self):
         return self.data_length + 5 # 5 bytes for dest_mac, src_mac, data_length
     
-    def __str__(self):
+    def __str__(self, receiver_name=""):
         return (
-            f"┌─ Ethernet Frame Header───────────────────────\n"
+            f"┌─ [{receiver_name}] Ethernet Frame ──────────────────\n"
             f"│  Dst MAC  : {self.dest_mac}\n"
             f"│  Src MAC  : {self.src_mac}\n"
             f"│  Length   : {self.data_length} bytes\n"
-            f"└────────────────────────────────────────"
+            f"└──────────────────────────────────────────"
         )
     
     def encapsulate(self) -> bytes:

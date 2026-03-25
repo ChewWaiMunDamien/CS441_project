@@ -92,9 +92,11 @@ def setup_router(host):
 def setup_nodes(host):
     N1_ARP_table = arp_table()
     N1_ARP_table.add(0x11, "R1")
+    N1_ARP_table.add(0x12, "N1")
     N1_ARP_table.add(0x13, "N2")
     N1_MAC_Port_table = mac_port_table()
     N1_MAC_Port_table.add("R1", 1000)
+    N1_MAC_Port_table.add("N1", 1001)
     N1_MAC_Port_table.add("N2", 1002)
 
     N1 = Node("N1", 0x12, "N1", N1_ARP_table, N1_MAC_Port_table, "R1", 1001, host)
@@ -102,22 +104,28 @@ def setup_nodes(host):
     N2_ARP_table = arp_table()
     N2_ARP_table.add(0x11, "R1")
     N2_ARP_table.add(0x12, "N1")
+    N2_ARP_table.add(0x13, "N2")
     N2_MAC_Port_table = mac_port_table()
     N2_MAC_Port_table.add("R1", 1000)
     N2_MAC_Port_table.add("N1", 1001)
+    N2_MAC_Port_table.add("N2", 1002)
 
     N2 = Node("N2", 0x13, "N2", N2_ARP_table, N2_MAC_Port_table, "R1", 1002, host)
 
     N3_ARP_table = arp_table()
     N3_ARP_table.add(0x21, "R2")
+    N3_ARP_table.add(0x22, "N3")
     N3_MAC_Port_table = mac_port_table()
     N3_MAC_Port_table.add("R2", 1000)
+    N3_MAC_Port_table.add("N3", 1003)
     N3 = Node("N3", 0x22, "N3", N3_ARP_table, N3_MAC_Port_table, "R2", 1003, host)
 
     N4_ARP_table = arp_table()
     N4_ARP_table.add(0x31, "R3")
+    N4_ARP_table.add(0x32, "N4")
     N4_MAC_Port_table = mac_port_table()
     N4_MAC_Port_table.add("R3", 1000)
+    N4_MAC_Port_table.add("N4", 1004)
     N4 = Node("N4", 0x32, "N4", N4_ARP_table, N4_MAC_Port_table, "R3", 1004, host)
     return {"N1":N1, "N2":N2, "N3":N3, "N4":N4}
 
@@ -127,7 +135,7 @@ def main():
     while (True):
         try:
             node_enter = input("State Node name to enter CLI or exit to quit: ")
-            if node_enter == "exit":
+            if node_enter == "exit" or node_enter == "quit":
                 print("Exiting...")
                 sys.exit(0)
             nodes[node_enter].cli()
