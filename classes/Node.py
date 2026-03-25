@@ -3,7 +3,7 @@ from .E_Frame import E_Frame
 from .IP_Packet import IP_Packet
 
 class Node:
-    def __init__(self, name, IP, MAC, ARP_Table, MAC_Socket_Table, default_Gateway, host, port):
+    def __init__(self, name, IP, MAC, ARP_Table, MAC_Socket_Table, default_Gateway, port, host):
         self.name = name
         self.IP = IP
         self.MAC = MAC
@@ -11,29 +11,33 @@ class Node:
         self.MAC_Socket_Table = MAC_Socket_Table
         self.listening = False
         self.default_Gateway = default_Gateway
+        self.host = host
+        self.port = port
 
-        self.sock = socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((host, port))
 
     def listen(self):
+        print(f"\n[{self.name}] Listening on port {self.port}")  
         while True:
             raw = self.sock.recv(4096) # max buffer size should be max frame size (261) but scared that it would be bigger then expected
             frame = E_Frame.deEncapsulate(raw)
-            print("\n"+frame)
+            print(f"\n[{self.name}] Received {len(raw)} bytes on port {self.port}")
+            print(f"\n{self.name}>{frame}")
             self.handle(frame)
 
     def handle(self,frame):
         # If not destination MAC drop the packet, unless the node is in listening mode
         if (frame.dest_mac == self.MAC or frame.dest_mac == E_Frame.Broadcast_MAC or self.listening):
-            packet = frame.payload # Should be deEncapsulating here but want to show the whole packet above
-            print("\n"+packet)
-            # If not destination IP drop the packet, unless the node is in listening mode
-            if (packet.destination_IP == self.IP or self.listening):
+            packet = frame.payload
+            print(f"{self.name}:\n{packet}")
+            # If not destination IP drop the packet
+            if packet.destination_IP == self.IP:
                 if packet.protocol == IP_Packet.PROTOCOL_PING:
-                    print(f"\n{self.name} received ping from {packet.source_IP}")
-                    self.send_reply(IP_Packet.PROTOCOL_PING, packet.source_IP)
+                    print(f"\n{self.name} received ping from {hex(packet.source_IP)}")
+                    self.send_reply(IP_Packet.PROTOCOL_PING_ECHO, packet.source_IP)
                 elif packet.protocol == IP_Packet.PROTOCOL_PING_ECHO:
-                    print(f"\n{self.name} received ping echo from {packet.source_IP}")
+                    print(f"\n{self.name} received ping echo from {hex(packet.source_IP)}")
 
     def get_mac(self, ip):
         mac_entry = self.ARP_Table.lookup(ip)
@@ -54,38 +58,54 @@ class Node:
         return E_Frame(dest_mac, self.MAC, packet)
 
     def send_packet(self, packet, dest_ip):
-        dest_mac = self.get_mac(dest_ip)
-        if dest_mac is None:
-            print(f"\n{self.name} has no ARP entry or default gateway for {dest_ip}, cannot send reply")
-            return
+        try:
+            dest_mac = self.get_mac(dest_ip)
+            print(f"\n[{self.name}] send_packet: dest_ip={hex(dest_ip)}, dest_mac={dest_mac}")
+            if dest_mac is None:
+                print(f"\n{self.name} has no ARP entry or default gateway for {dest_ip}, cannot send reply")
+                return
 
-        dest_port = self.get_port(dest_mac)
-        if dest_port is None:
-            print(f"\n{self.name} has no MAC-Port entry for {dest_mac}, cannot send reply")
-            return
+            dest_port = self.get_port(dest_mac)
+            print(f"\n[{self.name}] send_packet: dest_port={dest_port}")
+            if dest_port is None:
+                print(f"\n{self.name} has no MAC-Port entry for {dest_mac}, cannot send reply")
+                return
 
-        frame = self.make_frame(packet, dest_mac)
-        self.sock.sendto(frame, (self.host, dest_port))
+            frame = self.make_frame(packet, dest_mac)
+            print(f"\n[{self.name}] sendto: ({self.host}, {dest_port})")
+            self.sock.sendto(frame.encapsulate(), (self.host, dest_port))
+        except Exception as e:
+            print("\nError sending packet:", e)
 
+    def parse_string_to_hex(self,s):
+        return int(s,16) # Return the string as a hex integer
+    
     def send_reply(self,protocol,dest_ip):
+        if (type(dest_ip) == str):
+            dest_ip = self.parse_string_to_hex(dest_ip)
+
         payload = ""
         if protocol == IP_Packet.PROTOCOL_PING:
             payload = "Echo Reply"
+        elif protocol == IP_Packet.PROTOCOL_PING_ECHO:
+            payload = "Ping Echo"
 
         reply_packet = self.make_packet(payload, dest_ip, protocol)
-        self.send_packet(reply_packet.encapsulate(), dest_ip)
+        self.send_packet(reply_packet, dest_ip)
 
     def cli(self):
-        print(f"\nNode {self.name} | IP: {self.ip} | MAC: {self.mac} | Port: {self.port}")
+        print(f"\nNode {self.name} | IP: {hex(self.IP)} | MAC: {self.MAC}")
         print("\nCommands: ping <ip> | arp | MAC-Port | quit")
         while True:
-            cmd = input(f"{self.name}> ").strip().split()
+            cmd = input(f"\n{self.name}> ").strip().split()
             if not cmd: continue
             if cmd[0] == "ping" and len(cmd) == 2:
-                self.send_packet("ping", cmd[1])
+                self.send_reply(IP_Packet.PROTOCOL_PING, cmd[1])
             elif cmd[0] == "arp":
-                print("\n"+self.ARP_Table.all_entries())
+                print(f"\n{self.ARP_Table.all_entries()}")
             elif cmd[0] == "MAC-Port":
-                print("\n"+self.MAC_Socket_Table.all_entries())
+                print(f"\n{self.MAC_Socket_Table.all_entries()}")
             elif cmd[0] == "quit":
                 sys.exit(0)
+            else:
+                print(f"\nInvalid command. Commands: ping <ip> | arp | MAC-Port | quit")

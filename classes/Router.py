@@ -16,7 +16,8 @@ class Router:
 
     def route_to_interface(self, packet):
         prefix = Router.get_prefix(packet.destination_IP)
-        return self.interfaces.get(prefix) # Returns interface to send packets out of, or None if no route
+        print(prefix)
+        return self.routing_table.get(prefix) # Returns interface to send packets out of, or None if no route
     
     def targets_broadcast(self, interface):
         # Return list of ports to send to using sockets
@@ -27,6 +28,7 @@ class Router:
 
         if interface is None:
             print(f"\nRouter has no route for {hex(packet.destination_IP)}, dropping packet")
+            # Should not happen, if happening there is a issue
             return
         
         targets = self.targets_broadcast(interface) # Returns list of ports to send to using sockets
@@ -36,7 +38,7 @@ class Router:
 
         for target in targets:
             frame = E_Frame(dst_mac, src_mac, packet)
-            self.sock.sendto(frame.encapsulate().encode(), target)
+            self.sock.sendto(frame.encapsulate(), target)
 
     def dest_is_router(self,packet):
         for interface in self.interfaces:
@@ -48,9 +50,9 @@ class Router:
         while True:
             raw = self.sock.recv(4096)
             frame = E_Frame.deEncapsulate(raw)
-            print("\n"+frame)
+            print(f"\n{frame}")
             packet = frame.payload
-            print("\n"+packet)
+            print(f"\n{packet}")
             if (self.dest_is_router(packet)):
                 continue
             else:

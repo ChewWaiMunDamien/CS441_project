@@ -26,12 +26,11 @@ class IP_Packet:
         )
 
     def encapsulate(self) -> str:
-        # Serialize packet into json string
         return json.dumps({
-            "src_ip":      self.source_IP,
-            "dst_ip":      self.destination_IP,
-            "protocol":    self.protocol,
-            "payload":     self.payload,
+            "src_ip":   self.source_IP,       # must be "src_ip"
+            "dst_ip":   self.destination_IP,  # must be "dst_ip"
+            "protocol": self.protocol,
+            "payload":  self.payload,
             "data_length": self.data_length,
         })
 
@@ -39,4 +38,4 @@ class IP_Packet:
     def deEncapsulate(cls, raw: str) -> "IP_Packet":
         # For deserialize, packet from json string
         raw_data = json.loads(raw)
-        return cls(raw_data["src_ip"], raw_data["dst_ip"], raw_data["protocol"], raw_data["payload"])
+        return cls(raw_data["dst_ip"], raw_data["src_ip"], raw_data["protocol"], raw_data["payload"])

@@ -29,7 +29,7 @@ class E_Frame:
             "dst_mac":     self.dest_mac,
             "src_mac":     self.src_mac,
             "data_length": self.data_length,
-            "payload":     self.payload.serialize(),  # serialize IP packet into json string for transmission
+            "payload":     self.payload.encapsulate(),  # serialize IP packet into json string for transmission
         }
         return json.dumps(frame_dict).encode("utf-8")
 
@@ -38,4 +38,4 @@ class E_Frame:
         # Deserialize frame from bytes received from Socket UDP
         raw_data     = json.loads(raw.decode("utf-8"))
         ip_packet = IP_Packet.deEncapsulate(raw_data["payload"])  # reconstruct nested IP packet into IP packet class
-        return cls(raw_data["dst_mac"], raw_data["src_mac"], raw_data["ethertype"], ip_packet)
+        return cls(raw_data["dst_mac"], raw_data["src_mac"], ip_packet)
