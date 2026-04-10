@@ -53,6 +53,12 @@ from classes import Interface, Router, Node, arp_table, mac_port_table
 # 0x21: R2
 # 0x31: R3
 
+router_port = 1000
+N1_port = 1001
+N2_port = 1002
+N3_port = 1003
+N4_port = 1004
+
 def setup():
     # Create Router and nodes
     host = "127.0.0.1" # Loopback interface address (localhost)
@@ -74,7 +80,7 @@ def setup_router(host):
 
     Router_Interfaces = [R1, R2, R3]
 
-    Router_broadcast_table = {"R1": [(host,1001),(host,1002)], "R2": [(host,1003)], "R3": [(host,1004)]}
+    Router_broadcast_table = {"R1": [(host,N1_port),(host,N2_port)], "R2": [(host,N3_port)], "R3": [(host,N4_port)]}
 
     Router_ARP_table = arp_table()
     Router_ARP_table.add(0x11, "R1")
@@ -85,9 +91,15 @@ def setup_router(host):
     Router_ARP_table.add(0x22, "N3")
     Router_ARP_table.add(0x32, "N4")
 
+    Router_MAC_table = mac_port_table()
+    Router_MAC_table.add("N1",N1_port)
+    Router_MAC_table.add("N2",N2_port)
+    Router_MAC_table.add("N3",N3_port)
+    Router_MAC_table.add("N4",N4_port)
+
     Router_routing_table = {0x1: R1, 0x2: R2, 0x3: R3}
 
-    return Router(Router_routing_table, Router_broadcast_table, Router_ARP_table, Router_Interfaces, 1000, host)
+    return Router(Router_routing_table, Router_broadcast_table, Router_MAC_table, Router_ARP_table, Router_Interfaces, router_port, host)
 
 def setup_nodes(host):
     N1_ARP_table = arp_table()
@@ -95,38 +107,41 @@ def setup_nodes(host):
     N1_ARP_table.add(0x12, "N1")
     N1_ARP_table.add(0x13, "N2")
     N1_MAC_Port_table = mac_port_table()
-    N1_MAC_Port_table.add("R1", 1000)
-    N1_MAC_Port_table.add("N1", 1001)
-    N1_MAC_Port_table.add("N2", 1002)
+    N1_MAC_Port_table.add("R1", router_port)
+    N1_MAC_Port_table.add("N1", N1_port)
+    N1_MAC_Port_table.add("N2", N2_port)
 
-    N1 = Node("N1", 0x12, "N1", N1_ARP_table, N1_MAC_Port_table, "R1", 1001, host)
+    N1 = Node("N1", 0x12, "N1", N1_ARP_table, N1_MAC_Port_table, "R1", N1_port, host)
 
     N2_ARP_table = arp_table()
     N2_ARP_table.add(0x11, "R1")
     N2_ARP_table.add(0x12, "N1")
     N2_ARP_table.add(0x13, "N2")
     N2_MAC_Port_table = mac_port_table()
-    N2_MAC_Port_table.add("R1", 1000)
-    N2_MAC_Port_table.add("N1", 1001)
-    N2_MAC_Port_table.add("N2", 1002)
+    N2_MAC_Port_table.add("R1", router_port)
+    N2_MAC_Port_table.add("N1", N1_port)
+    N2_MAC_Port_table.add("N2", N2_port)
 
-    N2 = Node("N2", 0x13, "N2", N2_ARP_table, N2_MAC_Port_table, "R1", 1002, host)
+    N2 = Node("N2", 0x13, "N2", N2_ARP_table, N2_MAC_Port_table, "R1", N2_port, host)
 
     N3_ARP_table = arp_table()
     N3_ARP_table.add(0x21, "R2")
     N3_ARP_table.add(0x22, "N3")
     N3_MAC_Port_table = mac_port_table()
-    N3_MAC_Port_table.add("R2", 1000)
-    N3_MAC_Port_table.add("N3", 1003)
-    N3 = Node("N3", 0x22, "N3", N3_ARP_table, N3_MAC_Port_table, "R2", 1003, host)
+    N3_MAC_Port_table.add("R2", router_port)
+    N3_MAC_Port_table.add("N3", N3_port)
+
+    N3 = Node("N3", 0x22, "N3", N3_ARP_table, N3_MAC_Port_table, "R2", N3_port, host)
 
     N4_ARP_table = arp_table()
     N4_ARP_table.add(0x31, "R3")
     N4_ARP_table.add(0x32, "N4")
     N4_MAC_Port_table = mac_port_table()
-    N4_MAC_Port_table.add("R3", 1000)
-    N4_MAC_Port_table.add("N4", 1004)
-    N4 = Node("N4", 0x32, "N4", N4_ARP_table, N4_MAC_Port_table, "R3", 1004, host)
+    N4_MAC_Port_table.add("R3", router_port)
+    N4_MAC_Port_table.add("N4", N4_port)
+
+    
+    N4 = Node("N4", 0x32, "N4", N4_ARP_table, N4_MAC_Port_table, "R3", N4_port, host)
     return {"N1":N1, "N2":N2, "N3":N3, "N4":N4}
 
 def main():
