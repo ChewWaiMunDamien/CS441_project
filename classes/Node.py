@@ -1,4 +1,4 @@
-import socket, sys
+import socket, sys, threading
 from .E_Frame import E_Frame
 from .IP_Packet import IP_Packet
 
@@ -16,6 +16,11 @@ class Node:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((host, port))
+        
+        # For synchronous reply waiting
+        # Maps (source_ip, protocol) -> threading.Event
+        self.pending_replies = {}
+        self.reply_lock = threading.Lock()
 
     def listen(self):
         print(f"\n[{self.name}] Listening on port {self.port}")  
@@ -37,6 +42,11 @@ class Node:
                     self.send_reply(IP_Packet.PROTOCOL_PING_ECHO, packet.source_IP)
                 elif packet.protocol == IP_Packet.PROTOCOL_PING_ECHO:
                      print(f"[{self.name}] PING ECHO from {hex(packet.source_IP)}\n")
+                     # Signal any pending reply waiter for this source IP and protocol
+                     with self.reply_lock:
+                         key = (packet.source_IP, IP_Packet.PROTOCOL_PING)
+                         if key in self.pending_replies:
+                             self.pending_replies[key].set()
 
     def get_mac(self, ip):
         mac_entry = self.ARP_Table.lookup(ip)
@@ -89,6 +99,30 @@ class Node:
 
         reply_packet = self.make_packet(payload, dest_ip, protocol)
         self.send_packet(reply_packet, dest_ip)
+    
+    def send_reply_and_wait(self, protocol, dest_ip_str, timeout=2.0):
+        """Send a message and wait for response with timeout (in seconds)"""
+        dest_ip = self.parse_string_to_hex(dest_ip_str) if isinstance(dest_ip_str, str) else dest_ip_str
+        
+        # Create event for this (dest_ip, protocol) pair
+        key = (dest_ip, protocol)
+        event = threading.Event()
+        with self.reply_lock:
+            self.pending_replies[key] = event
+        
+        try:
+            # Send the message
+            self.send_reply(protocol, dest_ip)
+            
+            # Wait for response with timeout
+            if event.wait(timeout=timeout):
+                print(f"[{self.name}] Response received")
+            else:
+                print(f"[{self.name}] No response received (timeout after {timeout}s)")
+        finally:
+            # Clean up
+            with self.reply_lock:
+                self.pending_replies.pop(key, None)
 
     def cli(self):
         print(f"\nNode {self.name} | IP: {hex(self.IP)} | MAC: {self.MAC}")
@@ -97,7 +131,7 @@ class Node:
             cmd = input(f"\n{self.name}> ").strip().split()
             if not cmd: continue
             if cmd[0] == "ping" and len(cmd) == 2:
-                self.send_reply(IP_Packet.PROTOCOL_PING, cmd[1])
+                self.send_reply_and_wait(IP_Packet.PROTOCOL_PING, cmd[1])
             elif cmd[0] == "arp":
                 print(f"\n{self.ARP_Table.all_entries()}")
             elif cmd[0] == "MAC-Port":

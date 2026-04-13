@@ -53,11 +53,11 @@ from classes import Interface, Router, Node, arp_table, mac_port_table
 # 0x21: R2
 # 0x31: R3
 
-router_port = 1000
-N1_port = 1001
-N2_port = 1002
-N3_port = 1003
-N4_port = 1004
+router_port = 5000
+N1_port = 5001
+N2_port = 5002
+N3_port = 5003
+N4_port = 5004
 
 def setup():
     # Create Router and nodes
@@ -153,6 +153,9 @@ def main():
             if node_enter == "exit" or node_enter == "quit":
                 print("Exiting...")
                 sys.exit(0)
+            elif node_enter not in nodes.keys():
+                print("Invalid node name. Available nodes: N1, N2, N3, N4")
+                continue
             nodes[node_enter].cli()
         except KeyboardInterrupt:
             print("Exiting...")
